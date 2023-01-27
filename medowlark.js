@@ -66,8 +66,13 @@ const fortunes = [
     ];
 */
 
+//faz a requisição dos módulos dedicados ao handlebars e cria a página
+// que servirá como layout padrão
+
 var handlebars = require('express-handlebars')
 .create({ defaultLayout:'main' });
+
+var handler = require('./lib/handlers.js')
 
 app.engine('handlebars', handlebars.engine);
 
@@ -80,7 +85,7 @@ app.use(express.static(__dirname +'/public'))
 
 
 //para renderizar a página principal
-app. get('/',(req,res)=>res.render('home'))
+app. get('/',handler.home)
 
 //para renderizar a página sobre
 //app.get('/About',(req,res)=>res.render('about'))
@@ -95,6 +100,9 @@ app.get('/about', function(req, res){
     */
    res.render('about',{fortune: fortune.getFortune()})
 });
+
+//para a página blocks
+app.get('/blocks',handler.blocks)
 
 //página 404 personalizada
 
