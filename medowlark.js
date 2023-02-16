@@ -1,51 +1,3 @@
-//Servidor e rotemento sem o uso do handlebars e view engine
-/*const express = require('express')
-
-
-const app = express()
-
-//sobrepõe a porta 3000 defindo uma variável de ambiente
-//Se não acessar a porta 3000 acessa a porta da variável
-//PORT
-
-const port = process.env.port || 3000
-
-//incluindo duas novas rotas 
-//As rotas para homepege e a página Sobre
-
-app.get('/',(req,res)=>{
-    res.type('text/plain')
-    res.send('MedowLark Travel')
-})
-
-app.get('/About',(req,res)=>{
-    res.type('text/plain')
-    res.send('About MedowLark Travel')
-})
-
-//página 404 personalizada
-
-app.use((req,res)=>{
-    res.type('text/plain')
-    res.status(404)
-    res.send('404 not found')
-})
-
-//página 500 personaliozada
-
-app.use((err,req,res,next)=>{
-    console.error(err.message)
-    res.type('text/plain')
-    res.status(500)
-    res.send('500 - Server Error')
-})
-
-app.listen(port,()=>console.log(
-    'Express started on http://localhost:${port};'
-    + 'pres Ctrl-C to terminate'
-))
-
-*/
 
 //servidor e handlebars com o uso de view engines
 
@@ -55,16 +7,14 @@ const fortune = require('./lib/fortune.js')
 const app = express()
 const port = process.env.PORT || 3000
 
-/*
-array de frases que será substituído pelo modulo na pasta lib
-const fortunes = [
-    "Conquer your fears or they will conquer you.",
-    "Rivers need springs.",
-    "Do not fear what you don't know.",
-    "You will have a pleasant surprise.",
-    "Whenever possible, keep it simple.",
-    ];
-*/
+const bodyParser = require('body-parser')
+
+//módulo para processamento muultiparte de formulários
+const multiparty = require('multiparty')
+
+//para fazer o parsing dos corpos JSON
+app.use(bodyParser.json())
+
 
 //faz a requisição dos módulos dedicados ao handlebars e cria a página
 // que servirá como layout padrão
@@ -73,6 +23,10 @@ var handlebars = require('express-handlebars')
 .create({ defaultLayout:'main' });
 
 var handler = require('./lib/handlers.js')
+
+//consigurando o uso do body-parser para manipulação do corpo de requisição de
+//um formulário via post
+app.use(bodyParser.urlencoded({extended:true}))
 
 app.engine('handlebars', handlebars.engine);
 
@@ -92,14 +46,59 @@ app. get('/',handler.home)
 
 //nova página about com frases escolhidas aleatoriamente do array fortunes
 app.get('/about', function(req, res){
-    /*
-    utilizada no capítulo 3
-    var randomFortune =
-    fortunes[Math.floor(Math.random() * fortunes.length)];
-    res.render('about', { fortune: randomFortune });
-    */
    res.render('about',{fortune: fortune.getFortune()})
 });
+
+//para a página com formulário
+app.get('/signup',handler.signup)
+
+//para a página com formulário newsletter
+app.get('/newsletter',handler.newsletter)
+
+app.get('/contests/vacation-photo',function(req,res){
+    var now = new Date();
+    res.render('contests/vacation-photo',{
+    year: now.getFullYear(),month: now.getMonth()
+    });
+})
+
+app.post('/contests/vacation-photo/:year/:month', function(req, res){
+    const form = new multiparty.Form()
+    form.parse(req,(err,fields,files) => {
+        if(err){
+            return res.status(500).send({error: err.message});
+        } 
+        console.log('received fields:')
+        console.log(fields);
+        console.log('received files:');
+        console.log(files);
+        res.redirect(303, '/thankyou');
+    })
+    });
+
+//para o processamento da primeira versão de signup
+/*
+app.post('/process', function(req, res){
+    console.log('Form (from querystring): ' + req.query.form);
+    console.log('CSRF token (from hidden form field): ' + req.body._csrf);
+    console.log('Name (from visible form field): ' + req.body.name);
+    console.log('Email (from visible form field): ' + req.body.email);
+    res.redirect(303, '/thankyou');
+   
+});
+*/
+app.post('/process', function(req, res){
+    if(req.xhr || req.accepts('json,html')==='json'){
+        // if there were an error, we would send { error: 'error description' }
+        res.send({ success: true });
+    } else {
+        // if there were an error, we would redirect to an error page
+        res.redirect(303, '/thank-you');
+    }
+});
+
+//renderiza a página de agradecimento após ocorrido o redirecionamento   
+app.get('/thankyou',handler.thankyou);
 
 //para a página blocks
 app.get('/blocks',handler.blocks)
