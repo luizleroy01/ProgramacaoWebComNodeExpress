@@ -9,12 +9,29 @@ const port = process.env.PORT || 3000
 
 const bodyParser = require('body-parser')
 
+const credentials = require('./config.js')
+
 //módulo para processamento muultiparte de formulários
 const multiparty = require('multiparty')
 
 //para fazer o parsing dos corpos JSON
-app.use(bodyParser.json())
+app.use(bodyParser.json());
 
+//para manipulação de cookies com express
+const cookieParser = require('cookie-parser')
+
+//para manipulação de sessões com o express
+const expressSession = require('express-session')
+
+//para o uso do cookie parser
+app.use(cookieParser(credentials.cookieSecret))
+
+//para o uso das sessões pela aplicação
+app.use(expressSession({
+    resave: false,
+    saveUninitialized :false,
+    secret: credentials.cookieSecret,
+}))
 
 //faz a requisição dos módulos dedicados ao handlebars e cria a página
 // que servirá como layout padrão
@@ -47,6 +64,22 @@ app. get('/',handler.home)
 //nova página about com frases escolhidas aleatoriamente do array fortunes
 app.get('/about', function(req, res){
    res.render('about',{fortune: fortune.getFortune()})
+   //criando um cookie
+   res.cookie('signed_home','About',{signed:true,path:"/about",maxAge:15000});
+   console.log(req.signedCookies.signed_home)
+
+   //usando uma sessao
+   req.session.userName = "Anonymous"
+   const colorScheme = req.session.colorScheme || 'dark'
+   req.session.flash = {
+    type: "sucess",
+    intro: "Thank You !",
+    message : "You have now been acessed about page"
+   }
+   console.log(req.session.flash)
+
+   //excluindo um cookie
+   //res.clearCookie('signed_home')
 });
 
 //para a página com formulário
